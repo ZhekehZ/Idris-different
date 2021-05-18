@@ -58,28 +58,3 @@ insertionSortSorted : {A : Type} -> Ord A
     -> Sorted (insertionSort xs)
 insertionSortSorted t [] = sNil
 insertionSortSorted t (x::xs) = lemma2 t xs [x] (sCon (totalRefl t x) sNil)
-
-
-
-{- Proofs for concrete types -}
-
-insertionSortSortedNat : (xs : List Nat) -> Sorted (insertionSort xs)
-insertionSortSortedNat xs = insertionSortSorted (totalProofs refl tran tot) xs
-    where
-        refl : (x : Nat) -> x <= x = True
-        refl Z = Refl
-        refl (S n) = refl n
-
-        tran : (x, y, z : Nat) -> x <=| y -> y <=| z -> x <=| z
-        tran  Z     Z     z    a b = b
-        tran (S n)  Z     z    a b = void (uninhabited a)
-        tran  Z    (S n)  Z    a b = Refl
-        tran  Z    (S n) (S z) a b = Refl
-        tran (S x) (S y)  Z    a b = b
-        tran (S x) (S y) (S z) a b = tran x y z a b
-
-        tot : (x, y : Nat) -> Either (x <=| y) (y <=| x)
-        tot Z Z = Left Refl
-        tot Z (S y) = Left Refl
-        tot (S x) Z = Right Refl
-        tot (S x) (S y) = tot x y
