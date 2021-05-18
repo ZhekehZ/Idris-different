@@ -1,4 +1,4 @@
-module TotalOrder
+module Utils.TotalOrder
 
 infix 6 <=|  
 
@@ -26,8 +26,8 @@ totalRefl (totalProofs p _ _) = p
 
 ||| Transitivity getter
 public export
-totalTran : {A : Type} -> Ord A => IsTotal A -> (x, y, z : A) -> (x <=| y) -> (y <=| z) -> (x <=| z)
-totalTran (totalProofs _ p _) = p
+totalTran : {A : Type} -> Ord A => IsTotal A -> {x, y, z : A} -> (x <=| y) -> (y <=| z) -> (x <=| z)
+totalTran (totalProofs _ p _) {x=x} {y=y} {z=z} = p x y z
 
 
 ||| Totality getter

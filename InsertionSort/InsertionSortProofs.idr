@@ -1,9 +1,10 @@
 import InsertionSort
-import TotalOrder
 
 import Prelude.Uninhabited
-import DependentPatternMatching
-import Sorted
+
+import Utils.TotalOrder
+import Utils.DependentPatternMatching
+import Utils.Sorted
 
 %default total
 

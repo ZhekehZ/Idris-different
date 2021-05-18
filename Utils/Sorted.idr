@@ -1,4 +1,4 @@
-module Sorted
+module Utils.Sorted
 
 ||| Head or default 
 public export

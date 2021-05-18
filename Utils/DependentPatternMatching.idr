@@ -1,4 +1,4 @@
-module DependentPatternMatching
+module Utils.DependentPatternMatching
 
 ||| Dependent pattern matching 
 public export
