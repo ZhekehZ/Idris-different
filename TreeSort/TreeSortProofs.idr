@@ -109,14 +109,11 @@ treeToListAccSorted tt {t=Leaf} p sacc {head=h} ph mtlh = sacc
 treeToListAccSorted tt {t=Node l x r} (stNode stl _ str y1 y2) sacc {head=h} ph mtlh = 
     treeToListAccSorted tt stl (sCon aux (treeToListAccSorted tt str sacc ph (lemma2 tt mtlh))) Refl y1
     where
-        dpm : {A : Type} -> (x : A) -> (y : A ** x = y)
-        dpm x = (x ** Refl)
-
         replace : a = b -> a -> b
         replace Refl a = a
 
         aux : x <= headDef x (treeToListAcc acc r) = True
-        aux with (dpm r)
+        aux with (dpm' r)
             aux | (Leaf ** p) = rewrite p in case acc of
                     [] => totalRefl tt x
                     a::as => rewrite ph in replace (cong (\r => maxTDef x r <=| h) p) mtlh

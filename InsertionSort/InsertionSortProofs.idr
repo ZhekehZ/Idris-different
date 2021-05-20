@@ -5,6 +5,8 @@ import Prelude.Uninhabited
 import Utils.TotalOrder
 import Utils.DependentPatternMatching
 import Utils.Sorted
+import Utils.Permutation
+import Utils.SortFunction
 
 %default total
 
@@ -58,3 +60,45 @@ insertionSortSorted : {A : Type} -> Ord A
     -> Sorted (insertionSort xs)
 insertionSortSorted t [] = sNil
 insertionSortSorted t (x::xs) = lemma2 t xs [x] (sCon (totalRefl t x) sNil)
+
+
+
+lemma3 : {A : Type} -> (a, y : A) -> (as, ys : List A) -> IsPerm (y :: (a :: (as ++ ys))) (a :: (as ++ (y :: ys)))
+lemma3 a y [] ys = pFlip Refl Refl idPerm
+lemma3 a y (a'::as) ys = pTrans (pFlip Refl Refl idPerm) (pCons Refl (lemma3 a' y as ys))
+
+
+||| InsrtionSortAcc returns permutation
+insertionSortAccPerm : {A : Type} -> Ord A 
+    => IsTotal A 
+    -> (acc : List A) 
+    -> (xs : List A) 
+    -> IsPerm (insertionSortAcc acc xs) (acc ++ xs)
+insertionSortAccPerm tt [] [] = pNil
+insertionSortAccPerm tt [] (y::ys) = insertionSortAccPerm tt [y] ys  
+insertionSortAccPerm tt (a::as) [] = pCons Refl (rewrite (sym (aux as)) in idPerm)
+    where 
+        aux : (x : List A) -> x = x ++ []
+        aux [] = Refl
+        aux (x::xs) = cong (x::) (aux xs)
+insertionSortAccPerm tt (a::as) (y::ys) with (y <= a)
+    insertionSortAccPerm tt (a::as) (y::ys) | True = 
+        pTrans (insertionSortAccPerm tt (y :: a :: as) ys) (lemma3 a y as ys)
+    insertionSortAccPerm tt (a::as) (y::ys) | False = 
+        pTrans (insertionSortAccPerm tt (a :: insert y as) ys) (pCons Refl (aux y as ys))
+        where
+            aux : (y : A) -> (as, ys : List A) -> IsPerm (insert y as ++ ys) (as ++ (y :: ys))
+            aux y [] ys = idPerm
+            aux y (a::as) ys with (y <= a)
+                aux y (a::as) ys | True = lemma3 a y as ys
+                aux y (a::as) ys | False = pCons Refl (aux y as ys)
+
+||| InsrtionSort returns permutation
+insertionSortPerm : {A : Type} -> Ord A => IsTotal A -> (xs : List A) -> IsPerm (insertionSort xs) xs
+insertionSortPerm tt [] = pNil
+insertionSortPerm tt (x::xs) = insertionSortAccPerm tt [x] xs 
+
+
+||| InsertionSort is correct sort function
+insrtionSortIsCorrect : IsSortFunction (\x => insertionSort x)
+insrtionSortIsCorrect = isSortFunction insertionSort insertionSortSorted insertionSortPerm

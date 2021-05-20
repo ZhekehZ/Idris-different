@@ -3,17 +3,17 @@ module InsertionSort
 %default total
 
 public export
-insert : Ord a => a -> List a -> List a
+insert : {A : Type} -> Ord A => A -> List A -> List A
 insert x [] = [x]
 insert x (y::ys) = if x <= y then x::y::ys else y::insert x ys
 
 public export
-insertionSortAcc : Ord a => List a -> List a -> List a
+insertionSortAcc : {A : Type} -> Ord A => List A -> List A -> List A
 insertionSortAcc acc [] = acc
 insertionSortAcc acc (x::xs) = insertionSortAcc (insert x acc) xs
 
 public export
-insertionSort : Ord a => List a -> List a
+insertionSort : {A : Type} -> Ord A => List A -> List A
 insertionSort = insertionSortAcc []
 
 
