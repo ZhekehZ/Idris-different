@@ -5,6 +5,12 @@ import Utils.Sorted
 import Utils.DependentPatternMatching
 import Utils.SortingTree
 import Utils.Tree
+import Utils.Permutation
+import Utils.SameElements
+import Utils.NatUtils
+import Utils.SortFunction
+
+%default total
 
 
 lemma1 : {A : Type} -> Ord A => (a, x, y : A) -> (t : Tree A) -> maxTDef x (insert a t) = maxTDef y (insert a t)
@@ -137,3 +143,72 @@ treeSortSorted : {A : Type} -> Ord A
     -> (xs : List A)
     -> Sorted (treeSort xs)
 treeSortSorted tt xs = treeToListSorted tt (listToTreeSorted tt xs)
+
+
+
+data tCount : {A : Type} -> A -> Tree A -> Nat -> Type where
+    tcLeaf : tCount a Leaf 0 
+    tcNode : {A : Type} -> (a : A) -> {l, r : Tree A} -> (k1, k2 : Nat) 
+            -> tCount a l k1 -> tCount a r k2 -> tCount a (Node l a r) (S (k2 + k1))
+    tcNode' : {A : Type} -> (a : A) -> {l, r : Tree A} -> (k1, k2 : Nat) -> {x : A}
+            -> tCount a l k1 -> tCount a r k2 -> Not (x = a) -> tCount a (Node l x r) (k2 + k1) 
+
+lemma8 :  {A : Type} -> Ord A => IsTotal A -> {t : Tree A} -> {k : Nat} -> (a : A) -> tCount a t k -> tCount a (insert a t) (S k)
+lemma8 tt {t=Leaf} a p = tcNode a _ 0 p tcLeaf
+lemma8 tt {t=Node l _ r} a (tcNode _ a2 a3 a4 a5) = rewrite totalRefl tt a in rewrite sSumEqSumS a3 a2 in 
+        tcNode a (S a2) _ (lemma8 tt a a4) a5
+lemma8 tt {t=Node l x r} a (tcNode' _ a2 a3 a4 a5 a6) with (dpm (a<=) x)
+    lemma8 tt {t=Node l x r} a (tcNode' _ a2 a3 a4 a5 a6) | (True ** yes) = rewrite yes in rewrite sSumEqSumS a3 a2 in 
+        tcNode' a (S a2) _ (lemma8 tt a a4) a5 a6
+    lemma8 tt {t=Node l x r} a (tcNode' _ a2 a3 a4 a5 a6) | (False ** no) = rewrite no in tcNode' a _ _ a4 (lemma8 tt a a5) a6 
+
+
+lemma9 :  {A : Type} -> Ord A => IsTotal A -> {t : Tree A} -> {k : Nat} 
+    -> (a, x : A) -> tCount a t k -> Not (x = a) -> tCount a (insert x t) k
+lemma9 tt {t=Leaf} a x p q = tcNode' a _ _ p tcLeaf q
+lemma9 tt {t=Node l y r} _ x (tcNode _ k1 k2 r1 r2) q with (dpm (x <=) y)
+    lemma9 tt {t=Node l y r} _ x (tcNode _ k1 k2 r1 r2) q | (True ** yes) = rewrite yes in tcNode _ _ _ (lemma9 tt y x r1 q) r2 
+    lemma9 tt {t=Node l y r} _ x (tcNode _ k1 k2 r1 r2) q | (False ** no) = rewrite no in tcNode _ _ _ r1 (lemma9 tt y x r2 q) 
+lemma9 tt {t=Node l y r} a x (tcNode' _ k1 k2 r1 r2 r3) q with (dpm (x <=) y)
+    lemma9 tt {t=Node l y r} a x (tcNode' _ k1 k2 r1 r2 r3) q | (True ** yes) = rewrite yes in tcNode' _ _ _ (lemma9 tt a x r1 q) r2 r3
+    lemma9 tt {t=Node l y r} a x (tcNode' _ k1 k2 r1 r2 r3) q | (False ** no) = rewrite no in tcNode' _ _ _ r1 (lemma9 tt _ _ r2 q) r3
+
+lemma10 : {A : Type} -> Ord A => IsTotal A -> (xs : List A) -> {t : Tree A} -> (a : A) -> (k : Nat) 
+    -> {m : Nat} -> tCount a t m -> lCount a xs k -> tCount a (listToTreeAcc t xs) (k + m)
+lemma10 tt [] a k q p with (k)
+    lemma10 tt [] a k q p | Z = q
+lemma10 tt (x::xs) _ (S k) q (lcCons _ _ q3) = rewrite sSumEqSumS k m in lemma10 tt xs x _ (lemma8 tt x q) q3
+lemma10 tt (x::xs) a k q (lcCons' _ _ q3 q4) = lemma10 tt xs a _ (lemma9 tt a x q q4) q3
+
+
+listToTreeKeepsElements : {A : Type} -> Ord A 
+    => IsTotal A -> (xs : List A) -> (a : A) -> (k : Nat) -> lCount a xs k -> tCount a (listToTree xs) k
+listToTreeKeepsElements tt xs a k p = rewrite sym (xPlusZ k) in lemma10 tt xs a k tcLeaf p
+
+
+lemma11 : {A : Type} -> Ord A => IsTotal A -> (xs : Tree A) -> {t : List A} -> (a : A) -> (k : Nat) 
+    -> {m : Nat} -> lCount a t m -> tCount a xs k -> lCount a (treeToListAcc t xs) (k + m)
+lemma11 tt Leaf a Z p q = p
+lemma11 tt (Node l _ r) a _ p (tcNode _ a2 a3 a4 a5) = rewrite sym (aux a2 a3 m) in lemma11 tt l _ _ (lcCons a _ (lemma11 tt _ a _ p a5)) a4
+    where
+        aux : (a2, a3, m : Nat) -> a2 + S (a3 + m) = S ((a3 + a2) + m)
+        aux Z Z m = Refl
+        aux (S a2) Z m = cong S (aux a2 Z m)
+        aux a2 (S a3) m = (rewrite sym (sSumEqSumS a2 (S (a3 + m))) in cong S (aux _ _ _))
+lemma11 tt (Node l x r) a _ p (tcNode' _ a2 a3 a4 a5 a6) = 
+    let qq = trans (plusAssociative a2 a3 m) (cong (+ m) (plusCommutative a2 a3)) in 
+    rewrite sym qq in lemma11 tt l _ _ (lcCons' a _ (lemma11 tt _ a _ p a5) a6) a4
+
+
+treeToListKeepsElements : {A : Type} -> Ord A => IsTotal A -> (t : Tree A) -> (a : A) -> (k : Nat) -> tCount a t k -> lCount a (treeToList t) k
+treeToListKeepsElements tt t a k p = rewrite sym (xPlusZ k) in lemma11 tt t a k lcNil p
+
+
+treeSortKeepsElements : {A : Type} -> Ord A => IsTotal A -> (xs : List A) -> AreSameElements xs (treeSort xs)
+treeSortKeepsElements tt xs = areSameE tt xs (treeSort xs) 
+    (\a => \k => \p => treeToListKeepsElements tt (listToTree xs) a k (listToTreeKeepsElements tt xs a k p))
+
+
+||| TreeSort is correct sort function
+treeSortIsCorrect : IsSortFunction (\x => treeSort x)
+treeSortIsCorrect = isSortFunctionSameElements treeSort treeSortSorted treeSortKeepsElements

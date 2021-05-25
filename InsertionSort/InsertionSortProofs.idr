@@ -101,4 +101,4 @@ insertionSortPerm tt (x::xs) = insertionSortAccPerm tt [x] xs
 
 ||| InsertionSort is correct sort function
 insrtionSortIsCorrect : IsSortFunction (\x => insertionSort x)
-insrtionSortIsCorrect = isSortFunction insertionSort insertionSortSorted insertionSortPerm
+insrtionSortIsCorrect = isSortFunctionPerm insertionSort insertionSortSorted insertionSortPerm

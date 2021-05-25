@@ -15,33 +15,39 @@ data IsTotal : (A : Type) -> Ord A => Type where
         => ((x : A) -> x <=| x)                              -- reflexive  
         -> ((x, y, z : A) -> x <=| y -> y <=| z -> x <=| z)  -- transitive
         -> ((x, y : A) -> Either (x <=| y) (y <=| x))        -- total
+        -> ((x, y : A) -> (x <=| y) -> (y <=| x) -> x = y)   -- antisymmetric 
         -> IsTotal A
 
 
 ||| Reflexivity getter
 public export
 totalRefl : {A : Type} -> Ord A => IsTotal A -> (x : A) -> x <=| x
-totalRefl (totalProofs p _ _) = p
+totalRefl (totalProofs p _ _ _) = p
 
 
 ||| Transitivity getter
 public export
 totalTran : {A : Type} -> Ord A => IsTotal A -> {x, y, z : A} -> (x <=| y) -> (y <=| z) -> (x <=| z)
-totalTran (totalProofs _ p _) {x=x} {y=y} {z=z} = p x y z
+totalTran (totalProofs _ p _ _) {x=x} {y=y} {z=z} = p x y z
 
 
 ||| Totality getter
 public export
 totalTot : {A : Type} -> Ord A => IsTotal A -> (x, y : A) -> Either (x <=| y) (y <=| x)
-totalTot (totalProofs _ _ p) = p
+totalTot (totalProofs _ _ p _) = p
 
+
+||| Antisym getter
+public export
+totalAntiSym : {A : Type} -> Ord A => IsTotal A -> {x, y : A} -> (x <=| y) -> (y <=| x) -> x = y
+totalAntiSym (totalProofs _ _ _ p) {x=x} {y=y} = p {x=x} {y=y}
 
 
 {- For concrete types -}
 
 public export
 natIsTotal : IsTotal Nat
-natIsTotal = totalProofs refl tran tot
+natIsTotal = totalProofs refl tran tot anti
     where
         refl : (x : Nat) -> x <= x = True
         refl Z = Refl
@@ -61,3 +67,8 @@ natIsTotal = totalProofs refl tran tot
         tot (S x) Z = Right Refl
         tot (S x) (S y) = tot x y
 
+        anti : (x, y : Nat) -> (x <=| y) -> (y <=| x) -> x = y
+        anti Z Z _ _ = Refl
+        anti Z (S y) p q = void (uninhabited q)
+        anti (S x) Z p q = void (uninhabited p)
+        anti (S x) (S y) p q = cong S (anti x y p q)
